@@ -1,21 +1,25 @@
+
 /**
  * Headless WordPress Utility
  * Optimized for DigitalOcean / Production environments.
  */
 
 const getEndpoint = () => {
-  // In the browser, ALWAYS use the local proxy for security and CORS
+  // In the browser, we use the local API route to bypass CORS
   if (typeof window !== 'undefined') {
     return '/api/graphql';
   }
-  // On the server (during SSR), we can call WordPress directly via the environment variable
+  // During SSR (Build time / Server side), we use the direct environment variable
   return process.env.NEXT_PUBLIC_WORDPRESS_URL || "";
 };
 
 export async function fetchGraphQL(query: string, variables = {}, signal?: AbortSignal) {
   const endpoint = getEndpoint();
   
-  if (!endpoint) return null;
+  if (!endpoint) {
+    console.warn("Zosa Law: No GraphQL endpoint defined. Check NEXT_PUBLIC_WORDPRESS_URL.");
+    return null;
+  }
 
   try {
     const res = await fetch(endpoint, {
@@ -23,27 +27,30 @@ export async function fetchGraphQL(query: string, variables = {}, signal?: Abort
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, variables }),
       signal,
+      // Add cache tags for Next.js revalidation if needed
+      next: { revalidate: 3600 } 
     });
+
+    if (!res.ok) {
+      console.error(`Zosa Law: GraphQL fetch failed with status ${res.status}`);
+      return null;
+    }
 
     const json = await res.json();
     
     if (json.errors) {
-      console.warn('WordPress GraphQL returned errors:', json.errors);
+      console.warn('Zosa Law: WordPress GraphQL returned errors:', JSON.stringify(json.errors, null, 2));
       return null;
     }
     
     return json.data;
   } catch (error: any) {
     if (error.name === 'AbortError') return null;
-    console.error("Zosa Law: Request to /api/graphql failed.", error.message);
+    console.error("Zosa Law: Request to GraphQL failed.", error.message);
     return null;
   }
 }
 
-/**
- * Standard Queries
- * Matches the ACF field names defined in your WordPress setup.
- */
 export const GET_PARTNERS_QUERY = `
   query GetPartners {
     partners(first: 100, where: { orderby: { field: MENU_ORDER, order: ASC } }) {
