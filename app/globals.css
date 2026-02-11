@@ -1,6 +1,8 @@
 
 /* Custom Global Styles for Zosa Borromeo Law */
-
+@tailwind base;
+@tailwind components; 
+@tailwind utilities;
 :root {
   --background: #fafaf9; /* stone-50 */
   --foreground: #1c1917; /* stone-900 */
