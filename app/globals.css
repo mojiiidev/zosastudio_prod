@@ -3,11 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Global Styles for Zosa Borromeo Law */
-
 :root {
-  --background: #fafaf9; /* stone-50 */
-  --foreground: #1c1917; /* stone-900 */
+  --background: #fafaf9;
+  --foreground: #1c1917;
 }
 
 body {
@@ -26,12 +24,10 @@ body {
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* Nordic Smooth Scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* Base style resets to complement the CDN version */
 * {
   margin: 0;
   padding: 0;
