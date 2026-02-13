@@ -4,25 +4,46 @@
  *
  * This theme turns WordPress into a headless CMS.
  * All front-end traffic is redirected to the Vercel-hosted Next.js site.
- * Data is served exclusively via WPGraphQL.
+ * Data is served via WordPress REST API (no GraphQL needed).
  *
  * REQUIRED FREE PLUGINS:
- *   1. WPGraphQL                          (install from wp-admin > Plugins > Add New)
- *   2. Custom Post Type UI (CPT UI)       (install from wp-admin > Plugins > Add New)
- *   3. Carbon Fields                      (install from wp-admin > Plugins > Add New)
- *   4. WPGraphQL for Carbon Fields        (download from github.com/wp-graphql/wp-graphql-for-carbon-fields)
+ *   1. Carbon Fields                      (search in wp-admin > Plugins > Add New)
+ *   2. Custom Post Type UI (CPT UI)       (optional - search in wp-admin > Plugins > Add New)
  *
- * INSTALLATION INSTRUCTIONS:
- *   - Plugins 1-3: Go to wp-admin > Plugins > Add New and search for each
- *   - Plugin 4: Download ZIP from GitHub, then upload via wp-admin > Plugins > Add New > Upload Plugin
- *
- * ALL PLUGINS ARE 100% FREE. Carbon Fields includes repeater fields at no cost.
+ * The frontend fetches partner data via /wp-json/wp/v2/partners
+ * Carbon Fields includes free repeater fields (called "Complex" fields).
  */
 
 // ──────────────────────────────────────────────
 // 0. CONFIGURATION
 // ──────────────────────────────────────────────
 define('FRONTEND_URL', 'https://zosalaw.ph');
+
+// ──────────────────────────────────────────────
+// 0B. CARBON FIELDS REST API SUPPORT
+//     Expose Carbon Fields data via REST API
+// ──────────────────────────────────────────────
+add_action('rest_api_init', function () {
+    register_rest_field('partners', 'partner_fields', [
+        'get_callback' => function ($post) {
+            $fields = carbon_get_post_meta($post['id']);
+            return $fields ?: [];
+        },
+        'schema' => [
+            'type' => 'object',
+            'properties' => [
+                'title' => ['type' => 'string'],
+                'role' => ['type' => 'string'],
+                'bio' => ['type' => 'string'],
+                'email' => ['type' => 'string'],
+                'phone' => ['type' => 'string'],
+                'photo' => ['type' => 'string'],
+                'education' => ['type' => 'array'],
+                'specializations' => ['type' => 'array'],
+            ],
+        ],
+    ]);
+});
 
 
 // ──────────────────────────────────────────────

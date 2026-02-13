@@ -1,120 +1,55 @@
 /**
  * Headless WordPress Utility
- * Fetches from the WordPress GraphQL endpoint via the local API proxy to avoid CORS.
+ * Fetches from the WordPress REST API
  */
 
-const WORDPRESS_GRAPHQL_URL = process.env.NEXT_PUBLIC_WORDPRESS_URL || "";
+const WORDPRESS_REST_URL = process.env.NEXT_PUBLIC_WORDPRESS_URL || "";
 
-/**
- * Server-side fetch: calls WordPress directly.
- * Client-side fetch: uses the local /api/graphql proxy to avoid CORS.
- */
-function getEndpoint(): string {
-  if (typeof window !== "undefined") {
-    return "/api/graphql";
+function getRestEndpoint(): string {
+  if (!WORDPRESS_REST_URL) {
+    return "";
   }
-  return WORDPRESS_GRAPHQL_URL;
+  return `${WORDPRESS_REST_URL}/wp-json/wp/v2`;
 }
 
-export async function fetchGraphQL(
-  query: string,
-  variables: Record<string, unknown> = {},
+export async function fetchREST(
+  path: string,
   signal?: AbortSignal
 ) {
-  const endpoint = getEndpoint();
+  const endpoint = getRestEndpoint();
 
   if (!endpoint) {
     console.warn(
-      "Zosa Law: No GraphQL endpoint defined. Set NEXT_PUBLIC_WORDPRESS_URL."
+      "Zosa Law: No WordPress URL defined. Set NEXT_PUBLIC_WORDPRESS_URL."
     );
     return null;
   }
 
   try {
-    const res = await fetch(endpoint, {
-      method: "POST",
+    const url = `${endpoint}${path}`;
+    const res = await fetch(url, {
+      method: "GET",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, variables }),
       signal,
       cache: "no-store",
     });
 
     if (!res.ok) {
       console.error(
-        `Zosa Law: GraphQL fetch failed with status ${res.status}`
+        `Zosa Law: REST API fetch failed with status ${res.status}`
       );
       return null;
     }
 
-    const json = await res.json();
-
-    if (json.errors) {
-      console.warn(
-        "Zosa Law: WordPress GraphQL returned errors:",
-        JSON.stringify(json.errors, null, 2)
-      );
-      return null;
-    }
-
-    return json.data;
+    return await res.json();
   } catch (error: unknown) {
     if (error instanceof Error && error.name === "AbortError") return null;
     const message =
       error instanceof Error ? error.message : "Unknown error";
-    console.error("Zosa Law: Request to GraphQL failed.", message);
+    console.error("Zosa Law: Request to REST API failed.", message);
     return null;
   }
 }
 
-export const GET_PARTNERS_QUERY = `
-  query GetPartners {
-    partners(first: 100, where: { orderby: { field: MENU_ORDER, order: ASC } }) {
-      nodes {
-        id
-        databaseId
-        title
-        content
-        excerpt
-        featuredImage {
-          node {
-            sourceUrl
-          }
-        }
-        partnerFields {
-          title
-          role
-          bio
-          email
-          phone
-          photo
-          education {
-            degree
-          }
-          specializations {
-            name
-          }
-        }
-      }
-    }
-  }
-`;
-
-export const GET_POSTS_QUERY = `
-  query GetPosts {
-    posts(first: 6) {
-      nodes {
-        id
-        title
-        excerpt
-        content
-        date
-        slug
-        categories {
-          nodes {
-            name
-          }
-        }
-      }
-    }
-  }
-`;
+export const PARTNERS_ENDPOINT = "/partners?orderby=menu_order&order=asc&_embed&per_page=100";
+export const POSTS_ENDPOINT = "/posts?per_page=6&_embed";

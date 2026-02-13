@@ -4,136 +4,142 @@ Your WordPress theme has been updated to use Carbon Fields instead of Advanced C
 
 ## Required Plugins
 
-Install these 4 free plugins in your WordPress admin:
+Install these 2 free plugins in your WordPress admin. That's it!
 
-### 1. WPGraphQL
-- Go to: wp-admin > Plugins > Add New
-- Search: "WPGraphQL"
-- Install the plugin by Jason Bahl
-- Activate it
-
-### 2. Custom Post Type UI (CPT UI)
-- Go to: wp-admin > Plugins > Add New
-- Search: "Custom Post Type UI"
-- Install the plugin by WebDevStudios
-- Activate it
-- Note: The Partners post type is already registered in your theme's functions.php, so you don't need to create it manually unless you prefer using the UI.
-
-### 3. Carbon Fields
+### 1. Carbon Fields
 - Go to: wp-admin > Plugins > Add New
 - Search: "Carbon Fields"
 - Install the plugin by htmlburger
 - Activate it
 
-### 4. WPGraphQL for Carbon Fields
-- Download: https://github.com/wp-graphql/wp-graphql-for-carbon-fields/releases
-- Download the latest release ZIP file
-- Go to: wp-admin > Plugins > Add New > Upload Plugin
-- Upload the ZIP file
-- Activate it
+### 2. Custom Post Type UI (CPT UI) - Optional
+- Go to: wp-admin > Plugins > Add New
+- Search: "Custom Post Type UI"
+- Install the plugin by WebDevStudios
+- Activate it (optional - the Partners post type is already registered in your theme)
+
+**Note:** Your Next.js frontend uses the WordPress REST API to fetch Carbon Fields data. No GraphQL or additional integration plugins are needed!
 
 ## Migration Steps
 
 ### Step 1: Remove ACF Plugins (if installed)
 1. Deactivate "Advanced Custom Fields" plugin
-2. Deactivate "WPGraphQL for ACF" plugin
-3. You can delete them if you're not using them elsewhere
+2. Deactivate "WPGraphQL for ACF" plugin (if you have it)
+3. Delete them from wp-admin > Plugins
 
-### Step 2: Install Carbon Fields Plugins
-Follow the installation instructions above for all 4 required plugins.
+### Step 2: Install Carbon Fields Plugin
+1. Go to: wp-admin > Plugins > Add New
+2. Search: "Carbon Fields"
+3. Install and activate
 
 ### Step 3: Upload Updated Theme
 1. Upload the updated `wordpress-bridge-theme` folder to your WordPress installation
 2. Go to: wp-admin > Appearance > Themes
 3. Activate "Zosa Law Bridge Theme"
 
-### Step 4: Verify Field Registration
+### Step 4: Verify Everything Works
 1. Go to: wp-admin > Partners > Add New
-2. You should see a "Partner Details" meta box with the following fields:
+2. You should see a "Partner Details" meta box with these fields:
    - Title / Position
    - Role
    - Bio
    - Email
    - Phone
    - Photo
-   - Education (repeatable)
-   - Specializations (repeatable)
+   - Education (complex/repeatable)
+   - Specializations (complex/repeatable)
 
-### Step 5: Migrate Existing Data (if you had ACF data)
-If you previously had partner data in ACF format, you'll need to manually re-enter it into the Carbon Fields format, or write a custom migration script. The field names are similar, so the data structure should map directly.
+3. Fill in test data and save
+4. Your Next.js frontend will automatically sync via REST API
 
-## Key Differences from ACF
+### Step 5: Migrate Existing Data (if needed)
+If you had partner data in ACF format, you can:
+- **Option A**: Manually re-enter the data (simple if you have few partners)
+- **Option B**: Write a PHP script to migrate ACF data to Carbon Fields
+- **Option C**: Export ACF data to CSV, then import to Carbon Fields
 
-### Field Structure
-- **ACF**: Used nested field groups with `partnerFields { photo { node { sourceUrl } } }`
-- **Carbon Fields**: Returns direct values with `partnerFields { photo }` (direct URL string)
+## How It Works
 
-### Repeater Fields
-- **ACF**: Called "Repeater" fields (Pro only)
-- **Carbon Fields**: Called "Complex" fields (FREE!)
+### Without GraphQL
+Previously you needed:
+- Carbon Fields plugin
+- WPGraphQL plugin
+- WPGraphQL Carbon Fields integration plugin
 
-### Image Fields
-- **ACF**: Returns nested object with URL
-- **Carbon Fields**: Returns direct URL string when using `set_value_type('url')`
+### Now (Simplified)
+You only need:
+- Carbon Fields plugin
+- Your Next.js app fetches data via REST API: `/wp-json/wp/v2/partners`
 
-## GraphQL Query Structure
+### REST API Response Example
 
-Your GraphQL query now looks like this:
+The REST endpoint `/wp-json/wp/v2/partners` now returns:
 
-```graphql
-query GetPartners {
-  partners(first: 100, where: { orderby: { field: MENU_ORDER, order: ASC } }) {
-    nodes {
-      id
-      title
-      partnerFields {
-        title
-        role
-        bio
-        email
-        phone
-        photo
-        education {
-          degree
-        }
-        specializations {
-          name
-        }
-      }
-    }
+```json
+{
+  "id": 1,
+  "title": { "rendered": "John Doe" },
+  "partner_fields": {
+    "title": "Senior Partner",
+    "role": "Partner",
+    "bio": "John is a senior partner with 20 years of experience.",
+    "email": "john@zosalaw.ph",
+    "phone": "+63 (32) 231-1551",
+    "photo": "https://example.com/photo.jpg",
+    "education": [
+      { "degree": "Bachelor of Laws, University of Santo Tomas" }
+    ],
+    "specializations": [
+      { "name": "Corporate Law" },
+      { "name": "Litigation" }
+    ]
   }
 }
 ```
 
 ## Testing Your Setup
 
-1. Create a test Partner post with all fields filled
-2. Go to: your-wordpress-site.com/graphql
-3. Run the GetPartners query above
-4. Verify that all fields return data correctly
-5. Check your Next.js frontend to see if the data displays correctly
+### 1. Create Test Partner Data
+1. Go to: wp-admin > Partners > Add New
+2. Fill in all fields with test data
+3. Save the post
+
+### 2. Test REST API
+1. Open your browser and visit: `https://your-wordpress-site.com/wp-json/wp/v2/partners`
+2. You should see the partner data in JSON format
+3. Verify the `partner_fields` object contains all your data
+
+### 3. Test Frontend
+1. Your Next.js frontend automatically fetches from the REST API
+2. Refresh the page to see if partners appear
+3. Check browser console for any errors
 
 ## Troubleshooting
 
-### "Carbon Fields not loading"
+### "Carbon Fields not showing in WordPress admin"
 - Make sure Carbon Fields plugin is activated
-- Check that WPGraphQL for Carbon Fields is also activated
-- Clear WordPress cache if using a caching plugin
+- Clear WordPress cache (if using a caching plugin)
+- Go to: wp-admin > Partners > Add New - should see "Partner Details" box
 
-### "Fields not showing in GraphQL"
-- Go to: wp-admin > GraphQL > Settings
-- Verify that the Partners post type is enabled in GraphQL
-- Clear GraphQL schema cache
+### "REST API returns empty partner_fields"
+- Make sure you've filled in the Carbon Fields when creating a partner
+- Clear any REST API caching
+- Check that the partner post is published (not draft)
 
-### "Photo field returns null"
-- Make sure you've uploaded an image
-- Carbon Fields returns the full URL string directly
-- Check that the image is not too large (WordPress media upload limits)
+### "Frontend shows static data, not live data"
+- Check your `NEXT_PUBLIC_WORDPRESS_URL` environment variable
+- Open browser console for API errors
+- Try visiting the REST endpoint directly to verify it works
 
-### "Education/Specializations empty"
-- These are complex fields (repeaters)
-- Click "Add" to add entries
-- Make sure to save the post after adding entries
+### "Photo field is empty"
+- Make sure you uploaded an image to the Photo field
+- Carbon Fields returns the full URL string
+- Check WordPress media settings
+
+### "Education/Specializations showing as empty arrays"
+- Click "Add" to add entries to complex fields
+- Each entry needs at least the required fields filled
+- Save the post after adding entries
 
 ## Support
 
