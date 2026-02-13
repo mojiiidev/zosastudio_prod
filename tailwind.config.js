@@ -26,8 +26,8 @@ const config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        serif: ['Playfair Display', 'serif'],
+        sans: ['var(--font-inter)', 'Inter', 'sans-serif'],
+        serif: ['var(--font-playfair)', 'Playfair Display', 'serif'],
       },
       letterSpacing: {
         widest: '0.25em',
@@ -38,4 +38,4 @@ const config = {
   plugins: [],
 };
 
-export default config;
+module.exports = config;

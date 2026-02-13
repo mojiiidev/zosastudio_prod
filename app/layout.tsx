@@ -1,11 +1,29 @@
-
-import React from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Zosa Borromeo Law | Ong Vaño & Mirhan",
-  description: "Sophisticated legal advocacy for Philippine enterprise. Over 50 years of excellence in Corporate, Litigation, and Tax Law.",
+  title: "Zosa Borromeo Law | Ong Vano & Mirhan",
+  description:
+    "Sophisticated legal advocacy for Philippine enterprise. Over 50 years of excellence in Corporate, Litigation, and Tax Law.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1c1917",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -14,13 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-      </head>
-      <body className="antialiased text-stone-900 bg-stone-50">
+    <html lang="en" className={`scroll-smooth ${inter.variable} ${playfair.variable}`}>
+      <body className="antialiased text-stone-900 bg-stone-50 font-sans">
         {children}
       </body>
     </html>
