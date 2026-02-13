@@ -6,13 +6,11 @@
  * All front-end traffic is redirected to the Vercel-hosted Next.js site.
  * Data is served exclusively via WPGraphQL.
  *
- * REQUIRED FREE PLUGINS (install from wp-admin > Plugins > Add New):
- *   1. WPGraphQL                   (search "WPGraphQL" by Jason Bahl)
- *   2. Custom Post Type UI (CPT UI) (search "CPT UI" by WebDevStudios)
- *   3. Advanced Custom Fields (ACF) (search "ACF" - the FREE version)
- *   4. WPGraphQL for ACF            (download zip from github.com/wp-graphql/wpgraphql-acf/releases)
- *
- * ALL FOUR PLUGINS ARE 100% FREE.
+ * REQUIRED FREE PLUGINS:
+ *   1. WPGraphQL
+ *   2. Custom Post Type UI (CPT UI)
+ *   3. Advanced Custom Fields (ACF)
+ *   4. WPGraphQL for ACF
  */
 
 // ──────────────────────────────────────────────
@@ -72,8 +70,6 @@ add_action('init', function () {
 
 // ──────────────────────────────────────────────
 // 3. REGISTER "Partners" Custom Post Type via code
-//    (Alternative to CPT UI -- use ONE approach, not both)
-//    If you prefer CPT UI, DELETE this entire section 3.
 // ──────────────────────────────────────────────
 add_action('init', function () {
     register_post_type('partners', [
@@ -103,8 +99,6 @@ add_action('init', function () {
 
 // ──────────────────────────────────────────────
 // 4. REGISTER ACF Field Group for Partners (via code)
-//    This runs on every load but ACF caches it.
-//    Requires the FREE Advanced Custom Fields plugin.
 // ──────────────────────────────────────────────
 add_action('acf/init', function () {
     if (!function_exists('acf_add_local_field_group')) {
@@ -166,37 +160,17 @@ add_action('acf/init', function () {
                 'key'   => 'field_partner_education',
                 'label' => 'Education',
                 'name'  => 'education',
-                'type'  => 'repeater',
-                'layout' => 'table',
-                'button_label' => 'Add Degree',
+                'type'  => 'text',
+                'instructions' => 'Enter education details (e.g. Harvard Law, 2010).',
                 'show_in_graphql' => true,
-                'sub_fields' => [
-                    [
-                        'key'   => 'field_partner_degree',
-                        'label' => 'Degree',
-                        'name'  => 'degree',
-                        'type'  => 'text',
-                        'show_in_graphql' => true,
-                    ],
-                ],
             ],
             [
                 'key'   => 'field_partner_specializations',
                 'label' => 'Specializations',
                 'name'  => 'specializations',
-                'type'  => 'repeater',
-                'layout' => 'table',
-                'button_label' => 'Add Specialization',
+                'type'  => 'text',
+                'instructions' => 'Enter specializations separated by commas.',
                 'show_in_graphql' => true,
-                'sub_fields' => [
-                    [
-                        'key'   => 'field_partner_spec_name',
-                        'label' => 'Specialization Name',
-                        'name'  => 'name',
-                        'type'  => 'text',
-                        'show_in_graphql' => true,
-                    ],
-                ],
             ],
         ],
         'location' => [
@@ -250,3 +224,4 @@ add_action('after_setup_theme', function () {
     add_image_size('partner-portrait', 400, 500, true);
     add_image_size('partner-large', 800, 1000, true);
 });
+?>
