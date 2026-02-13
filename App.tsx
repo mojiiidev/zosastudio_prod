@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Practices from './components/Practices';
@@ -20,13 +20,17 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const parser = useMemo(() => typeof window !== 'undefined' ? new DOMParser() : null, []);
-
-  const stripHtml = useCallback((html: string = "") => {
-    if (!html || !parser) return html || "";
-    const doc = parser.parseFromString(html, 'text/html');
-    return doc.body.textContent || "";
-  }, [parser]);
+  // Robust HTML stripping that converts breaks to newlines first
+  const cleanText = useCallback((input: string = "") => {
+    if (!input) return "";
+    return input
+      .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to newlines
+      .replace(/<\/p>/gi, '\n')     // Convert paragraph ends to newlines
+      .replace(/<[^>]*>?/gm, '')    // Strip all other tags
+      .replace(/&nbsp;/g, ' ')      // Clean common entities
+      .replace(/&#8211;/g, '–')
+      .trim();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -41,45 +45,53 @@ const App: React.FC = () => {
           fetchGraphQL(GET_POSTS_QUERY, {}, controller.signal)
         ]);
 
-        // Process Partners
         if (pResult?.partners?.nodes?.length > 0) {
           const mappedPartners = pResult.partners.nodes.map((node: WPPartnerNode, i: number) => {
             const acf = node.partnerFields;
 
-            // Helper to handle the transition from repeater (array) to text (string)
-            // This ensures .map() doesn't fail on the new string fields
-            const getArrayFromField = (value: any, separator: string | RegExp = /[\n,]/) => {
+            // Utility to convert text/textarea into a list for the UI
+            const getArrayFromField = (value: any, separator: string | RegExp) => {
               if (typeof value === 'string') {
-                return value.split(separator).map(s => s.trim()).filter(Boolean);
+                const stripped = cleanText(value);
+                // Split by newlines first (standard for textareas)
+                const lines = stripped.split(/[\n\r]+/);
+                
+                // If we have a specific separator (like comma for specs), split further
+                let finalParts: string[] = [];
+                if (separator !== '\n') {
+                  lines.forEach(line => {
+                    finalParts = finalParts.concat(line.split(separator));
+                  });
+                } else {
+                  finalParts = lines;
+                }
+
+                return finalParts.map(s => s.trim()).filter(Boolean);
               }
-              if (Array.isArray(value)) {
-                return value.map((item: any) => item.name || item.degree || item);
-              }
-              return [];
+              return Array.isArray(value) ? value.map(v => v.name || v.degree || v) : [];
             };
 
             return {
               id: node.id || `wp-${i}`,
               name: node.title,
-              title: acf?.title || 'Partner',
-              role: acf?.role || 'Legal Counsel',
-              bio: acf?.bio || stripHtml(node.content || node.excerpt || "Partner at Zosa Borromeo Law."),
+              title: cleanText(acf?.title) || 'Partner',
+              role: cleanText(acf?.role) || 'Legal Counsel',
+              bio: cleanText(acf?.bio || node.content || node.excerpt || ""),
               imageUrl: acf?.photo?.node?.sourceUrl || node.featuredImage?.node?.sourceUrl || STATIC_PARTNERS[i % STATIC_PARTNERS.length].imageUrl,
               specialization: getArrayFromField(acf?.specializations, ','),
               education: getArrayFromField(acf?.education, '\n'),
-              email: acf?.email || 'info@zosalaw.ph',
-              phone: acf?.phone || '+63 (32) 231-1551',
+              email: cleanText(acf?.email) || 'info@zosalaw.ph',
+              phone: cleanText(acf?.phone) || '+63 (32) 231-1551',
             };
           });
           setPartners(mappedPartners);
         }
 
-        // Process News/Posts
         if (nResult?.posts?.nodes?.length > 0) {
           const mappedPosts = nResult.posts.nodes.map((node: WPPostNode) => ({
             id: node.id,
             title: node.title,
-            excerpt: node.excerpt,
+            excerpt: cleanText(node.excerpt),
             content: node.content,
             date: node.date,
             slug: node.slug,
@@ -89,8 +101,8 @@ const App: React.FC = () => {
         }
       } catch (err: any) {
         if (err.name === 'AbortError') return;
-        console.error("App: Failed to initialize data", err);
-        setError("Failed to sync with WordPress.");
+        console.error("App sync error:", err);
+        setError("CMS Sync Offline");
       } finally {
         setIsLoading(false);
       }
@@ -98,7 +110,7 @@ const App: React.FC = () => {
 
     loadData();
     return () => controller.abort();
-  }, [stripHtml]);
+  }, [cleanText]);
 
   const toggleServices = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
@@ -126,7 +138,7 @@ const App: React.FC = () => {
       {error && !isLoading && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-white shadow-xl border border-red-100 px-6 py-3 text-xs text-red-600 rounded-full flex items-center space-x-3 animate-fade-in">
           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
-          <span className="font-medium tracking-tight">Offline Mode: Displaying cached content</span>
+          <span className="font-medium tracking-tight">System Offline: Using Cache</span>
         </div>
       )}
 
@@ -153,7 +165,7 @@ const App: React.FC = () => {
                   We act as a strategic legal partner to business owners, advising on corporate structuring, regulatory compliance, and high-stakes commercial litigation.
                 </p>
                 <p>
-                  Our modern approach is grounded in deep-seated knowledge of local jurisprudence, ensuring that our clients are protected across all Philippine business hubs including Cebu, Makati, and Clark.
+                  Our modern approach is grounded in deep-seated knowledge of local jurisprudence, ensuring that our clients are protected across all Philippine business hubs.
                 </p>
               </div>
             </div>
