@@ -21,14 +21,16 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Robust HTML stripping that converts breaks to newlines first
-  const cleanText = useCallback((input: string = "") => {
-    if (!input) return "";
+  const cleanText = useCallback((input: any = "") => {
+    if (typeof input !== 'string') return "";
     return input
       .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to newlines
       .replace(/<\/p>/gi, '\n')     // Convert paragraph ends to newlines
       .replace(/<[^>]*>?/gm, '')    // Strip all other tags
       .replace(/&nbsp;/g, ' ')      // Clean common entities
       .replace(/&#8211;/g, '–')
+      .replace(/&#8212;/g, '—')
+      .replace(/&amp;/g, '&')
       .trim();
   }, []);
 
@@ -51,9 +53,16 @@ const App: React.FC = () => {
 
             // Utility to convert text/textarea into a list for the UI
             const getArrayFromField = (value: any, separator: string | RegExp) => {
+              if (!value) return [];
+              
+              // If it's already an array (old repeater data), return it cleaned
+              if (Array.isArray(value)) {
+                return value.map(v => cleanText(v.name || v.degree || v)).filter(Boolean);
+              }
+
               if (typeof value === 'string') {
                 const stripped = cleanText(value);
-                // Split by newlines first (standard for textareas)
+                // Split by newlines (standard for textareas)
                 const lines = stripped.split(/[\n\r]+/);
                 
                 // If we have a specific separator (like comma for specs), split further
@@ -68,7 +77,7 @@ const App: React.FC = () => {
 
                 return finalParts.map(s => s.trim()).filter(Boolean);
               }
-              return Array.isArray(value) ? value.map(v => v.name || v.degree || v) : [];
+              return [];
             };
 
             return {

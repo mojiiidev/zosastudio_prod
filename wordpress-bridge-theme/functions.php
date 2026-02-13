@@ -25,17 +25,24 @@ add_action('template_redirect', function () {
 });
 
 // 2. CORS: API & GraphQL Headers
+// Expanded to handle preflight OPTIONS requests more aggressively to prevent 405 errors.
 add_action('init', function () {
-    $allowed = ['https://zosalaw.ph', 'https://www.zosalaw.ph', 'http://localhost:3000'];
+    $allowed_origins = [
+        'https://zosalaw.ph',
+        'https://www.zosalaw.ph',
+        'http://localhost:3000'
+    ];
+    
     $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
-    if (in_array($origin, $allowed, true)) {
-        header("Access-Control-Allow-Origin: {$origin}");
-        header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
-        header('Access-Control-Allow-Credentials: true');
+    if (in_array($origin, $allowed_origins, true)) {
+        header("Access-Control-Allow-Origin: $origin");
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
+        header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization, X-WP-Nonce");
+        header("Access-Control-Allow-Credentials: true");
     }
 
+    // Immediately stop and return 200 for OPTIONS preflight requests
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         status_header(200);
         exit;
@@ -53,6 +60,7 @@ add_action('init', function () {
             'edit_item'          => 'Edit Partner',
             'all_items'          => 'All Partners',
             'search_items'       => 'Search Partners',
+            'not_found'          => 'No partners found',
         ],
         'public'              => true,
         'show_in_rest'        => true,
@@ -65,8 +73,8 @@ add_action('init', function () {
     ]);
 });
 
-// 4. REGISTER ACF Field Group (Text-based)
-// Added 'new_lines' => '' to prevent <p> and <br> tags.
+// 4. REGISTER ACF Field Group
+// 'new_lines' => '' prevents ACF from wrapping input in <p> tags.
 add_action('acf/init', function () {
     if (!function_exists('acf_add_local_field_group')) return;
 
@@ -93,7 +101,7 @@ add_action('acf/init', function () {
                 'label' => 'Bio',
                 'name'  => 'bio',
                 'type'  => 'textarea',
-                'new_lines' => '', // Prevent auto-paragraphs
+                'new_lines' => '', 
                 'rows'  => 4,
                 'show_in_graphql' => true,
             ],
@@ -124,7 +132,7 @@ add_action('acf/init', function () {
                 'label' => 'Education',
                 'name'  => 'education',
                 'type'  => 'textarea',
-                'new_lines' => '', // Prevent auto-paragraphs
+                'new_lines' => '',
                 'instructions' => 'Enter one degree per line.',
                 'rows'  => 4,
                 'show_in_graphql' => true,
