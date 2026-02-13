@@ -6,8 +6,8 @@ export interface Partner {
   role: string;
   bio: string;
   imageUrl: string;
-  specialization: string[];
-  education: string[];
+  specialization: string;
+  education: string;
   email: string;
   phone: string;
 }
@@ -52,8 +52,8 @@ export interface WPPartnerNode {
     bio?: string;
     email?: string;
     phone?: string;
-    education?: { degree: string }[];
-    specializations?: { name: string }[];
+    education?: string;
+    specializations?: string;
     photo?: {
       node: {
         sourceUrl: string;
