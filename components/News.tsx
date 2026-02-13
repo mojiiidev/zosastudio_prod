@@ -125,16 +125,7 @@ export default function News({ posts, isLoading }: NewsProps) {
         </div>
       )}
 
-      <style>{`
-        .news-content p { margin-bottom: 1.5rem; }
-        .news-content h3 { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; color: #1c1917; }
-        .news-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.5rem; }
-        .news-content li { margin-bottom: 0.5rem; }
-        @keyframes slide-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        .animate-slide-up { animation: slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
-      `}</style>
+
     </section>
   );
 }
