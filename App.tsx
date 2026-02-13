@@ -10,8 +10,8 @@ import News from './components/News';
 import ContactForm from './components/ContactForm';
 import Footer from './components/Footer';
 import ServicesPage from './components/ServicesPage';
-import { fetchREST, PARTNERS_ENDPOINT, POSTS_ENDPOINT } from './lib/wordpress';
-import { Partner, Post } from './types';
+import { fetchGraphQL, GET_PARTNERS_QUERY, GET_POSTS_QUERY } from './lib/wordpress';
+import { Partner, Post, WPPartnerNode, WPPostNode } from './types';
 import { PARTNERS as STATIC_PARTNERS, STATIC_POSTS } from './constants';
 
 const App: React.FC = () => {
@@ -37,45 +37,41 @@ const App: React.FC = () => {
       setError(null);
 
       try {
-        const [partnersRes, postsRes] = await Promise.all([
-          fetchREST(PARTNERS_ENDPOINT, controller.signal),
-          fetchREST(POSTS_ENDPOINT, controller.signal)
+        const [pResult, nResult] = await Promise.all([
+          fetchGraphQL(GET_PARTNERS_QUERY, {}, controller.signal),
+          fetchGraphQL(GET_POSTS_QUERY, {}, controller.signal)
         ]);
 
         // Process Partners
-        if (Array.isArray(partnersRes) && partnersRes.length > 0) {
-          const mappedPartners = partnersRes.map((node: any, i: number) => {
-            const cf = node.partner_fields || {};
-            const imageUrl = cf.photo ||
-              node._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
-              STATIC_PARTNERS[i % STATIC_PARTNERS.length].imageUrl;
-
+        if (pResult?.partners?.nodes?.length > 0) {
+          const mappedPartners = pResult.partners.nodes.map((node: WPPartnerNode, i: number) => {
+            const acf = node.partnerFields;
             return {
               id: node.id || `wp-${i}`,
-              name: node.title?.rendered || '',
-              title: cf.title || 'Partner',
-              role: cf.role || 'Legal Counsel',
-              bio: cf.bio || stripHtml(node.content?.rendered || node.excerpt?.rendered || "Partner at Zosa Borromeo Law."),
-              imageUrl,
-              specialization: cf.specializations?.map((s: any) => s.name || s) || [],
-              education: cf.education?.map((e: any) => e.degree || e) || [],
-              email: cf.email || 'info@zosalaw.ph',
-              phone: cf.phone || '+63 (32) 231-1551',
+              name: node.title,
+              title: acf?.title || 'Partner',
+              role: acf?.role || 'Legal Counsel',
+              bio: acf?.bio || stripHtml(node.content || node.excerpt || "Partner at Zosa Borromeo Law."),
+              imageUrl: acf?.photo?.node?.sourceUrl || node.featuredImage?.node?.sourceUrl || STATIC_PARTNERS[i % STATIC_PARTNERS.length].imageUrl,
+              specialization: acf?.specializations?.map((s: any) => s.name || s) || [],
+              education: acf?.education?.map((e: any) => e.degree || e) || [],
+              email: acf?.email || 'info@zosalaw.ph',
+              phone: acf?.phone || '+63 (32) 231-1551',
             };
           });
           setPartners(mappedPartners);
         }
 
         // Process News/Posts
-        if (Array.isArray(postsRes) && postsRes.length > 0) {
-          const mappedPosts = postsRes.map((node: any) => ({
+        if (nResult?.posts?.nodes?.length > 0) {
+          const mappedPosts = nResult.posts.nodes.map((node: WPPostNode) => ({
             id: node.id,
-            title: node.title?.rendered || '',
-            excerpt: stripHtml(node.excerpt?.rendered || ''),
-            content: node.content?.rendered || '',
-            date: node.date || '',
-            slug: node.slug || '',
-            category: node.categories?.[0] || 'Insights'
+            title: node.title,
+            excerpt: node.excerpt,
+            content: node.content,
+            date: node.date,
+            slug: node.slug,
+            category: node.categories?.nodes?.[0]?.name || 'Insights'
           }));
           setPosts(mappedPosts);
         }

@@ -34,7 +34,7 @@ export interface NavItem {
   href: string;
 }
 
-// Internal WP Shape for Partners (Carbon Fields)
+// Internal WP Shape for Partners
 export interface WPPartnerNode {
   id: string;
   databaseId?: number;
@@ -52,9 +52,13 @@ export interface WPPartnerNode {
     bio?: string;
     email?: string;
     phone?: string;
-    photo?: string;
     education?: { degree: string }[];
     specializations?: { name: string }[];
+    photo?: {
+      node: {
+        sourceUrl: string;
+      };
+    };
   };
 }
 
