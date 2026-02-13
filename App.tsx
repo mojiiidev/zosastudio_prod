@@ -45,18 +45,18 @@ const App: React.FC = () => {
         // Process Partners
         if (pResult?.partners?.nodes?.length > 0) {
           const mappedPartners = pResult.partners.nodes.map((node: WPPartnerNode, i: number) => {
-            const acf = node.partnerFields;
+            const cf = node.partnerFields;
             return {
               id: node.id || `wp-${i}`,
               name: node.title,
-              title: acf?.title || 'Partner',
-              role: acf?.role || 'Legal Counsel',
-              bio: acf?.bio || stripHtml(node.content || node.excerpt || "Partner at Zosa Borromeo Law."),
-              imageUrl: acf?.photo?.node?.sourceUrl || node.featuredImage?.node?.sourceUrl || STATIC_PARTNERS[i % STATIC_PARTNERS.length].imageUrl,
-              specialization: acf?.specializations?.map((s: any) => s.name || s) || [],
-              education: acf?.education?.map((e: any) => e.degree || e) || [],
-              email: acf?.email || 'info@zosalaw.ph',
-              phone: acf?.phone || '+63 (32) 231-1551',
+              title: cf?.title || 'Partner',
+              role: cf?.role || 'Legal Counsel',
+              bio: cf?.bio || stripHtml(node.content || node.excerpt || "Partner at Zosa Borromeo Law."),
+              imageUrl: cf?.photo || node.featuredImage?.node?.sourceUrl || STATIC_PARTNERS[i % STATIC_PARTNERS.length].imageUrl,
+              specialization: cf?.specializations?.map((s: any) => s.name || s) || [],
+              education: cf?.education?.map((e: any) => e.degree || e) || [],
+              email: cf?.email || 'info@zosalaw.ph',
+              phone: cf?.phone || '+63 (32) 231-1551',
             };
           });
           setPartners(mappedPartners);

@@ -86,16 +86,12 @@ export const GET_PARTNERS_QUERY = `
           bio
           email
           phone
+          photo
           education {
             degree
           }
           specializations {
             name
-          }
-          photo {
-            node {
-              sourceUrl
-            }
           }
         }
       }

@@ -6,13 +6,17 @@
  * All front-end traffic is redirected to the Vercel-hosted Next.js site.
  * Data is served exclusively via WPGraphQL.
  *
- * REQUIRED FREE PLUGINS (install from wp-admin > Plugins > Add New):
- *   1. WPGraphQL                   (search "WPGraphQL" by Jason Bahl)
- *   2. Custom Post Type UI (CPT UI) (search "CPT UI" by WebDevStudios)
- *   3. Advanced Custom Fields (ACF) (search "ACF" - the FREE version)
- *   4. WPGraphQL for ACF            (download zip from github.com/wp-graphql/wpgraphql-acf/releases)
+ * REQUIRED FREE PLUGINS:
+ *   1. WPGraphQL                          (install from wp-admin > Plugins > Add New)
+ *   2. Custom Post Type UI (CPT UI)       (install from wp-admin > Plugins > Add New)
+ *   3. Carbon Fields                      (install from wp-admin > Plugins > Add New)
+ *   4. WPGraphQL for Carbon Fields        (download from github.com/wp-graphql/wp-graphql-for-carbon-fields)
  *
- * ALL FOUR PLUGINS ARE 100% FREE.
+ * INSTALLATION INSTRUCTIONS:
+ *   - Plugins 1-3: Go to wp-admin > Plugins > Add New and search for each
+ *   - Plugin 4: Download ZIP from GitHub, then upload via wp-admin > Plugins > Add New > Upload Plugin
+ *
+ * ALL PLUGINS ARE 100% FREE. Carbon Fields includes repeater fields at no cost.
  */
 
 // ──────────────────────────────────────────────
@@ -102,123 +106,69 @@ add_action('init', function () {
 
 
 // ──────────────────────────────────────────────
-// 4. REGISTER ACF Field Group for Partners (via code)
-//    This runs on every load but ACF caches it.
-//    Requires the FREE Advanced Custom Fields plugin.
+// 4. LOAD CARBON FIELDS
+//    Carbon Fields provides free repeater/complex fields.
+//    Auto-loads composer dependencies if installed via plugin.
 // ──────────────────────────────────────────────
-add_action('acf/init', function () {
-    if (!function_exists('acf_add_local_field_group')) {
+add_action('after_setup_theme', function () {
+    // If Carbon Fields is installed as a plugin, it auto-loads itself.
+    // This check ensures it's available before we use it.
+    if (!class_exists('\Carbon_Fields\Container')) {
         return;
     }
-
-    acf_add_local_field_group([
-        'key'      => 'group_partner_fields',
-        'title'    => 'Partner Details',
-        'fields'   => [
-            [
-                'key'   => 'field_partner_title',
-                'label' => 'Title / Position',
-                'name'  => 'title',
-                'type'  => 'text',
-                'instructions' => 'e.g. "Founding Partner", "Senior Partner"',
-                'show_in_graphql' => true,
-            ],
-            [
-                'key'   => 'field_partner_role',
-                'label' => 'Role',
-                'name'  => 'role',
-                'type'  => 'text',
-                'instructions' => 'e.g. "Partner", "Associate"',
-                'show_in_graphql' => true,
-            ],
-            [
-                'key'   => 'field_partner_bio',
-                'label' => 'Bio',
-                'name'  => 'bio',
-                'type'  => 'textarea',
-                'rows'  => 4,
-                'show_in_graphql' => true,
-            ],
-            [
-                'key'   => 'field_partner_email',
-                'label' => 'Email',
-                'name'  => 'email',
-                'type'  => 'email',
-                'show_in_graphql' => true,
-            ],
-            [
-                'key'   => 'field_partner_phone',
-                'label' => 'Phone',
-                'name'  => 'phone',
-                'type'  => 'text',
-                'show_in_graphql' => true,
-            ],
-            [
-                'key'   => 'field_partner_photo',
-                'label' => 'Photo',
-                'name'  => 'photo',
-                'type'  => 'image',
-                'return_format' => 'array',
-                'preview_size'  => 'medium',
-                'show_in_graphql' => true,
-            ],
-            [
-                'key'   => 'field_partner_education',
-                'label' => 'Education',
-                'name'  => 'education',
-                'type'  => 'repeater',
-                'layout' => 'table',
-                'button_label' => 'Add Degree',
-                'show_in_graphql' => true,
-                'sub_fields' => [
-                    [
-                        'key'   => 'field_partner_degree',
-                        'label' => 'Degree',
-                        'name'  => 'degree',
-                        'type'  => 'text',
-                        'show_in_graphql' => true,
-                    ],
-                ],
-            ],
-            [
-                'key'   => 'field_partner_specializations',
-                'label' => 'Specializations',
-                'name'  => 'specializations',
-                'type'  => 'repeater',
-                'layout' => 'table',
-                'button_label' => 'Add Specialization',
-                'show_in_graphql' => true,
-                'sub_fields' => [
-                    [
-                        'key'   => 'field_partner_spec_name',
-                        'label' => 'Specialization Name',
-                        'name'  => 'name',
-                        'type'  => 'text',
-                        'show_in_graphql' => true,
-                    ],
-                ],
-            ],
-        ],
-        'location' => [
-            [
-                [
-                    'param'    => 'post_type',
-                    'operator' => '==',
-                    'value'    => 'partners',
-                ],
-            ],
-        ],
-        'show_in_graphql'     => true,
-        'graphql_field_name'  => 'partnerFields',
-        'position'            => 'normal',
-        'style'               => 'default',
-        'active'              => true,
-    ]);
+    \Carbon_Fields\Carbon_Fields::boot();
 });
 
 
 // ──────────────────────────────────────────────
-// 5. CLEANUP: Remove unnecessary front-end bloat
+// 5. REGISTER CARBON FIELDS for Partners
+//    This creates the same field structure as ACF but with free repeaters.
+// ──────────────────────────────────────────────
+use Carbon_Fields\Container;
+use Carbon_Fields\Field;
+
+add_action('carbon_fields_register_fields', function () {
+    if (!class_exists('\Carbon_Fields\Container')) {
+        return;
+    }
+
+    Container::make('post_meta', 'partner_fields', 'Partner Details')
+        ->where('post_type', '=', 'partners')
+        ->add_fields([
+            Field::make('text', 'title', 'Title / Position')
+                ->set_help_text('e.g. "Founding Partner", "Senior Partner"'),
+
+            Field::make('text', 'role', 'Role')
+                ->set_help_text('e.g. "Partner", "Associate"'),
+
+            Field::make('textarea', 'bio', 'Bio')
+                ->set_rows(4),
+
+            Field::make('text', 'email', 'Email')
+                ->set_attribute('type', 'email'),
+
+            Field::make('text', 'phone', 'Phone'),
+
+            Field::make('image', 'photo', 'Photo')
+                ->set_value_type('url'),
+
+            Field::make('complex', 'education', 'Education')
+                ->set_layout('tabbed-horizontal')
+                ->add_fields([
+                    Field::make('text', 'degree', 'Degree'),
+                ]),
+
+            Field::make('complex', 'specializations', 'Specializations')
+                ->set_layout('tabbed-horizontal')
+                ->add_fields([
+                    Field::make('text', 'name', 'Specialization Name'),
+                ]),
+        ]);
+});
+
+
+// ──────────────────────────────────────────────
+// 6. CLEANUP: Remove unnecessary front-end bloat
 // ──────────────────────────────────────────────
 add_action('init', function () {
     remove_action('wp_head', 'print_emoji_detection_script', 7);
@@ -230,7 +180,7 @@ add_action('init', function () {
 
 
 // ──────────────────────────────────────────────
-// 6. ADMIN BAR: Quick link to the live Vercel site
+// 7. ADMIN BAR: Quick link to the live Vercel site
 // ──────────────────────────────────────────────
 add_action('admin_bar_menu', function ($wp_admin_bar) {
     $node = $wp_admin_bar->get_node('view-site');
@@ -243,7 +193,7 @@ add_action('admin_bar_menu', function ($wp_admin_bar) {
 
 
 // ──────────────────────────────────────────────
-// 7. IMAGE SIZES: Optimized for the frontend
+// 8. IMAGE SIZES: Optimized for the frontend
 // ──────────────────────────────────────────────
 add_action('after_setup_theme', function () {
     add_theme_support('post-thumbnails');
