@@ -3,16 +3,31 @@
  * Zosa Law Bridge Theme - functions.php
  *
  * This theme turns WordPress into a headless CMS.
- * 
- * IMPORTANT: For image CORS errors, you MUST add Access-Control headers 
- * directly to your Nginx config for static files (jpg, png, etc).
+ * All front-end traffic is redirected to the Vercel-hosted Next.js site.
+ * Data is served exclusively via WPGraphQL.
+ *
+ * REQUIRED FREE PLUGINS (install from wp-admin > Plugins > Add New):
+ *   1. WPGraphQL                   (search "WPGraphQL" by Jason Bahl)
+ *   2. Custom Post Type UI (CPT UI) (search "CPT UI" by WebDevStudios)
+ *   3. Advanced Custom Fields (ACF) (search "ACF" - the FREE version)
+ *   4. WPGraphQL for ACF            (download zip from github.com/wp-graphql/wpgraphql-acf/releases)
+ *
+ * ALL FOUR PLUGINS ARE 100% FREE.
  */
 
+// ──────────────────────────────────────────────
+// 0. CONFIGURATION
+// ──────────────────────────────────────────────
 define('FRONTEND_URL', 'https://zosalaw.ph');
 
+
+// ──────────────────────────────────────────────
 // 1. REDIRECT: Send all non-API visitors to Vercel
+// ──────────────────────────────────────────────
 add_action('template_redirect', function () {
     $uri = $_SERVER['REQUEST_URI'];
+
+    // Never redirect API endpoints or admin pages
     $is_api = (
         strpos($uri, '/graphql') !== false ||
         strpos($uri, '/wp-json') !== false ||
@@ -27,30 +42,39 @@ add_action('template_redirect', function () {
     }
 });
 
-// 2. CORS: Comprehensive PHP-level CORS for GraphQL and REST API
+
+// ──────────────────────────────────────────────
+// 2. CORS: Allow the Vercel frontend to call /graphql
+// ──────────────────────────────────────────────
 add_action('init', function () {
-    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-    $allowed_origins = [
+    $allowed = [
         'https://zosalaw.ph',
         'https://www.zosalaw.ph',
         'http://localhost:3000',
     ];
 
-    if (in_array($origin, $allowed_origins)) {
-        header("Access-Control-Allow-Origin: $origin");
-        header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
-        header("Access-Control-Allow-Credentials: true");
-        header("Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce");
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+    if (in_array($origin, $allowed, true)) {
+        header("Access-Control-Allow-Origin: {$origin}");
+        header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        header('Access-Control-Allow-Credentials: true');
     }
 
-    // Respond to preflight requests immediately
+    // Immediately respond to preflight OPTIONS requests
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         status_header(200);
         exit;
     }
 });
 
-// 3. REGISTER "Partners" Custom Post Type
+
+// ──────────────────────────────────────────────
+// 3. REGISTER "Partners" Custom Post Type via code
+//    (Alternative to CPT UI -- use ONE approach, not both)
+//    If you prefer CPT UI, DELETE this entire section 3.
+// ──────────────────────────────────────────────
 add_action('init', function () {
     register_post_type('partners', [
         'labels' => [
@@ -61,24 +85,34 @@ add_action('init', function () {
             'edit_item'          => 'Edit Partner',
             'all_items'          => 'All Partners',
             'search_items'       => 'Search Partners',
+            'not_found'          => 'No partners found',
+            'not_found_in_trash' => 'No partners in trash',
         ],
         'public'              => true,
-        'show_in_rest'        => true,
-        'show_in_graphql'     => true,
+        'has_archive'         => false,
+        'show_in_rest'        => true,    // Gutenberg support
+        'show_in_graphql'     => true,    // WPGraphQL support
         'graphql_single_name' => 'partner',
         'graphql_plural_name' => 'partners',
-        'supports'            => ['title', 'thumbnail'], // No 'editor' to avoid doubling
+        'supports'            => ['title', 'editor', 'thumbnail', 'excerpt', 'page-attributes'],
         'menu_icon'           => 'dashicons-groups',
         'menu_position'       => 5,
     ]);
 });
 
-// 4. REGISTER ACF Field Group for Partners
+
+// ──────────────────────────────────────────────
+// 4. REGISTER ACF Field Group for Partners (via code)
+//    This runs on every load but ACF caches it.
+//    Requires the FREE Advanced Custom Fields plugin.
+// ──────────────────────────────────────────────
 add_action('acf/init', function () {
-    if (!function_exists('acf_add_local_field_group')) return;
+    if (!function_exists('acf_add_local_field_group')) {
+        return;
+    }
 
     acf_add_local_field_group([
-        'key'      => 'group_zosa_partner_details_v3',
+        'key'      => 'group_partner_fields',
         'title'    => 'Partner Details',
         'fields'   => [
             [
@@ -86,7 +120,7 @@ add_action('acf/init', function () {
                 'label' => 'Title / Position',
                 'name'  => 'title',
                 'type'  => 'text',
-                'instructions' => 'e.g. "Founding Partner"',
+                'instructions' => 'e.g. "Founding Partner", "Senior Partner"',
                 'show_in_graphql' => true,
             ],
             [
@@ -94,36 +128,34 @@ add_action('acf/init', function () {
                 'label' => 'Role',
                 'name'  => 'role',
                 'type'  => 'text',
-                'instructions' => 'e.g. "Partner"',
+                'instructions' => 'e.g. "Partner", "Associate"',
                 'show_in_graphql' => true,
             ],
             [
                 'key'   => 'field_partner_bio',
-                'label' => 'Biography',
+                'label' => 'Bio',
                 'name'  => 'bio',
                 'type'  => 'textarea',
-                'rows'  => 6,
+                'rows'  => 4,
                 'show_in_graphql' => true,
             ],
             [
                 'key'   => 'field_partner_email',
-                'label' => 'Email Address',
+                'label' => 'Email',
                 'name'  => 'email',
                 'type'  => 'email',
-                'wrapper' => ['width' => '50'],
                 'show_in_graphql' => true,
             ],
             [
                 'key'   => 'field_partner_phone',
-                'label' => 'Phone Number',
+                'label' => 'Phone',
                 'name'  => 'phone',
                 'type'  => 'text',
-                'wrapper' => ['width' => '50'],
                 'show_in_graphql' => true,
             ],
             [
                 'key'   => 'field_partner_photo',
-                'label' => 'Profile Photo',
+                'label' => 'Photo',
                 'name'  => 'photo',
                 'type'  => 'image',
                 'return_format' => 'array',
@@ -134,43 +166,87 @@ add_action('acf/init', function () {
                 'key'   => 'field_partner_education',
                 'label' => 'Education',
                 'name'  => 'education',
-                'type'  => 'textarea',
-                'instructions' => 'Enter one degree per line.',
-                'rows'  => 4,
+                'type'  => 'repeater',
+                'layout' => 'table',
+                'button_label' => 'Add Degree',
                 'show_in_graphql' => true,
+                'sub_fields' => [
+                    [
+                        'key'   => 'field_partner_degree',
+                        'label' => 'Degree',
+                        'name'  => 'degree',
+                        'type'  => 'text',
+                        'show_in_graphql' => true,
+                    ],
+                ],
             ],
             [
                 'key'   => 'field_partner_specializations',
                 'label' => 'Specializations',
                 'name'  => 'specializations',
-                'type'  => 'text',
-                'instructions' => 'Separate with commas.',
+                'type'  => 'repeater',
+                'layout' => 'table',
+                'button_label' => 'Add Specialization',
                 'show_in_graphql' => true,
+                'sub_fields' => [
+                    [
+                        'key'   => 'field_partner_spec_name',
+                        'label' => 'Specialization Name',
+                        'name'  => 'name',
+                        'type'  => 'text',
+                        'show_in_graphql' => true,
+                    ],
+                ],
             ],
         ],
         'location' => [
-            [['param' => 'post_type', 'operator' => '==', 'value' => 'partners']]
+            [
+                [
+                    'param'    => 'post_type',
+                    'operator' => '==',
+                    'value'    => 'partners',
+                ],
+            ],
         ],
         'show_in_graphql'     => true,
         'graphql_field_name'  => 'partnerFields',
-        'position'            => 'acf_after_title',
-        'style'               => 'seamless',
-        'hide_on_screen'      => [
-            'the_content',
-            'excerpt',
-            'discussion',
-            'comments',
-            'revisions',
-            'author',
-            'format',
-            'page_attributes',
-            'categories',
-            'tags',
-        ],
+        'position'            => 'normal',
+        'style'               => 'default',
+        'active'              => true,
     ]);
 });
 
+
+// ──────────────────────────────────────────────
+// 5. CLEANUP: Remove unnecessary front-end bloat
+// ──────────────────────────────────────────────
+add_action('init', function () {
+    remove_action('wp_head', 'print_emoji_detection_script', 7);
+    remove_action('wp_print_styles', 'print_emoji_styles');
+    remove_action('wp_head', 'rsd_link');
+    remove_action('wp_head', 'wlwmanifest_link');
+    remove_action('wp_head', 'wp_generator');
+});
+
+
+// ──────────────────────────────────────────────
+// 6. ADMIN BAR: Quick link to the live Vercel site
+// ──────────────────────────────────────────────
+add_action('admin_bar_menu', function ($wp_admin_bar) {
+    $node = $wp_admin_bar->get_node('view-site');
+    if ($node) {
+        $node->title = 'View Live Site';
+        $node->href  = FRONTEND_URL;
+        $wp_admin_bar->add_node($node);
+    }
+}, 999);
+
+
+// ──────────────────────────────────────────────
+// 7. IMAGE SIZES: Optimized for the frontend
+// ──────────────────────────────────────────────
 add_action('after_setup_theme', function () {
     add_theme_support('post-thumbnails');
+    add_image_size('partner-portrait', 400, 500, true);
+    add_image_size('partner-large', 800, 1000, true);
 });
-?>
