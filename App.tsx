@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -46,6 +45,19 @@ const App: React.FC = () => {
         if (pResult?.partners?.nodes?.length > 0) {
           const mappedPartners = pResult.partners.nodes.map((node: WPPartnerNode, i: number) => {
             const acf = node.partnerFields;
+
+            // Helper to handle the transition from repeater (array) to text (string)
+            // This ensures .map() doesn't fail on the new string fields
+            const getArrayFromField = (value: any, separator: string | RegExp = /[\n,]/) => {
+              if (typeof value === 'string') {
+                return value.split(separator).map(s => s.trim()).filter(Boolean);
+              }
+              if (Array.isArray(value)) {
+                return value.map((item: any) => item.name || item.degree || item);
+              }
+              return [];
+            };
+
             return {
               id: node.id || `wp-${i}`,
               name: node.title,
@@ -53,8 +65,8 @@ const App: React.FC = () => {
               role: acf?.role || 'Legal Counsel',
               bio: acf?.bio || stripHtml(node.content || node.excerpt || "Partner at Zosa Borromeo Law."),
               imageUrl: acf?.photo?.node?.sourceUrl || node.featuredImage?.node?.sourceUrl || STATIC_PARTNERS[i % STATIC_PARTNERS.length].imageUrl,
-              specialization: acf?.specializations?.map((s: any) => s.name || s) || [],
-              education: acf?.education?.map((e: any) => e.degree || e) || [],
+              specialization: getArrayFromField(acf?.specializations, ','),
+              education: getArrayFromField(acf?.education, '\n'),
               email: acf?.email || 'info@zosalaw.ph',
               phone: acf?.phone || '+63 (32) 231-1551',
             };
@@ -76,6 +88,7 @@ const App: React.FC = () => {
           setPosts(mappedPosts);
         }
       } catch (err: any) {
+        if (err.name === 'AbortError') return;
         console.error("App: Failed to initialize data", err);
         setError("Failed to sync with WordPress.");
       } finally {
@@ -92,7 +105,6 @@ const App: React.FC = () => {
     setView(prev => prev === 'home' ? 'services' : 'home');
   };
 
-  // Scroll reset on view change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [view]);
@@ -111,9 +123,8 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-stone-50 selection:bg-stone-900 selection:text-stone-50 overflow-x-hidden">
       <Navbar onToggleServices={toggleServices} currentView={view} />
       
-      {/* Subtle Error Bar */}
       {error && !isLoading && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-white nordic-shadow border border-red-100 px-6 py-3 text-xs text-red-600 rounded-full flex items-center space-x-3 animate-fade-in">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-white shadow-xl border border-red-100 px-6 py-3 text-xs text-red-600 rounded-full flex items-center space-x-3 animate-fade-in">
           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
           <span className="font-medium tracking-tight">Offline Mode: Displaying cached content</span>
         </div>
