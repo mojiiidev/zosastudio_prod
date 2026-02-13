@@ -1,68 +1,41 @@
-
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Production-Grade GraphQL Proxy
- * 
- * Why use this?
- * 1. Security: Hides the WordPress URL from the client.
- * 2. CORS: Bypasses all Cross-Origin Resource Sharing restrictions.
- * 3. SSL: Prevents Mixed Content blocks if WordPress is on HTTP.
+ * GraphQL proxy to avoid CORS issues when fetching from the
+ * WordPress backend hosted on DigitalOcean.
  */
-export async function POST(req: NextRequest) {
-  const WP_URL = process.env.NEXT_PUBLIC_WORDPRESS_URL;
+export async function POST(request: NextRequest) {
+  const wpUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL;
 
-  if (!WP_URL) {
-    console.error("[Proxy Error] NEXT_PUBLIC_WORDPRESS_URL is missing in environment variables.");
+  if (!wpUrl) {
     return NextResponse.json(
-      { errors: [{ message: "Backend configuration error. Please check server environment variables." }] },
+      { error: "WordPress GraphQL URL is not configured." },
       { status: 500 }
     );
   }
 
   try {
-    const body = await req.json();
+    const body = await request.json();
 
-    // Use a short timeout for better UX - don't hang if WP is down
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-    const response = await fetch(WP_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'ZosaLaw-Headless-Frontend',
-      },
+    const wpResponse = await fetch(wpUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: controller.signal
     });
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Proxy Error] WordPress responded with ${response.status}: ${errorText}`);
+    if (!wpResponse.ok) {
       return NextResponse.json(
-        { errors: [{ message: `WordPress unreachable (${response.status})` }] },
-        { status: response.status }
+        { error: `WordPress responded with status ${wpResponse.status}` },
+        { status: wpResponse.status }
       );
     }
 
-    const data = await response.json();
+    const data = await wpResponse.json();
     return NextResponse.json(data);
-  } catch (error: any) {
-    let errorMessage = "Internal Server Error";
-    
-    if (error.name === 'AbortError') {
-      errorMessage = "WordPress request timed out.";
-    } else if (error.code === 'ECONNREFUSED' || error.message.includes('fetch failed')) {
-      errorMessage = "Could not connect to WordPress. Check if the server is running.";
-    }
-
-    console.error("[Proxy Fatal Error]:", error.message);
-    return NextResponse.json(
-      { errors: [{ message: errorMessage }] },
-      { status: 502 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unknown proxy error";
+    console.error("GraphQL Proxy Error:", message);
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }
