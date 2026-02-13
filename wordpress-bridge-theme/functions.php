@@ -160,7 +160,7 @@ add_action('acf/init', function () {
                 'key'   => 'field_partner_education',
                 'label' => 'Education',
                 'name'  => 'education',
-                'type'  => 'text',
+                'type'  => 'textarea',
                 'instructions' => 'Enter education details (e.g. Harvard Law, 2010).',
                 'show_in_graphql' => true,
             ],
