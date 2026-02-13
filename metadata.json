@@ -1,6 +1,0 @@
-
-{
-  "name": "zosalaw-production",
-  "description": "Production-ready headless frontend for Zosa Borromeo Law. Optimized for DigitalOcean/Vercel bridging.",
-  "requestFramePermissions": []
-}

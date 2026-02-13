@@ -2,7 +2,6 @@
 {
   "name": "zosa-law-headless",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -16,10 +15,12 @@
     "next": "^15.1.0",
     "lucide-react": "^0.468.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.5"
+    "tailwind-merge": "^2.5.5",
+    "class-variance-authority": "^0.7.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",

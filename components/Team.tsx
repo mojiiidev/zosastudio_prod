@@ -37,9 +37,11 @@ export default function Team({ partners, isLoading }: TeamProps) {
               className="bg-white p-4 nordic-shadow group transition-all duration-500 hover:-translate-y-2 cursor-pointer flex flex-col h-full"
             >
               <div className="relative overflow-hidden aspect-[4/5] mb-6">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={partner.imageUrl} 
-                  alt={partner.name} 
+                  alt={partner.name}
+                  crossOrigin="anonymous"
                   className="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-stone-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
@@ -75,9 +77,11 @@ export default function Team({ partners, isLoading }: TeamProps) {
             </button>
 
             <div className="w-full md:w-2/5 aspect-[4/5] md:aspect-auto">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src={selectedPartner.imageUrl} 
-                alt={selectedPartner.name} 
+                alt={selectedPartner.name}
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover grayscale"
               />
             </div>
@@ -124,12 +128,7 @@ export default function Team({ partners, isLoading }: TeamProps) {
           </div>
         </div>
       )}
-      <style>{`
-        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        .animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-      `}</style>
+
     </section>
   );
 }

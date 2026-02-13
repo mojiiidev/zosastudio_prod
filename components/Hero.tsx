@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Image from 'next/image';
 
 interface HeroProps {
   onToggleServices?: (e?: React.MouseEvent) => void;
@@ -9,10 +10,12 @@ const Hero: React.FC<HeroProps> = ({ onToggleServices }) => {
   return (
     <section id="home" className="relative h-screen flex items-center justify-center overflow-hidden bg-stone-100">
       <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000" 
-          alt="Minimalist Architecture" 
-          className="w-full h-full object-cover opacity-20 grayscale"
+        <Image
+          src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000"
+          alt=""
+          fill
+          className="object-cover opacity-20 grayscale"
+          priority
         />
         <div className="absolute inset-0 bg-gradient-to-b from-stone-50/0 via-stone-50/50 to-stone-50"></div>
       </div>
